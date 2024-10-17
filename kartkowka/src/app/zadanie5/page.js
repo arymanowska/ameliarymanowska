@@ -2,7 +2,7 @@
 import Country from "@/components/country"
 import Link from "next/link"
 import { useState, useEffect} from "react"
-export default function strona6(){
+export default function zadanie5(){
 
     const [data, setData] = useState(null)
     const [error, setError] = useState(false)

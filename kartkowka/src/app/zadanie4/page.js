@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-export default function strona4(){
+export default function zadanie4(){
 
     const [bg, setBg] = useState("bg-red-500") 
     const [input, setInput] = useState("")
