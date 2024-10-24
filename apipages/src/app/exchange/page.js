@@ -25,8 +25,9 @@ export default function Page(){
             {data && data.map((item, idx) => {
                 <div key={idx}>
                     {
-                        item
+                        item.rates
                     }
+                    <h1>{item}</h1>
                 </div>
             })}
         </div>
