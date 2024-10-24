@@ -7,7 +7,7 @@ export default function Page(){
 
     useEffect(() => {
         const getData = async () => {
-            const response = await fetch("https://newsapi.org/v2/top-headlines?country=us&apiKey=4acad791681f4777b331b8ebaa1c16b5") 
+            const response = await fetch("https://newsapi.org/v2/everything?q=bitcoin&apiKey=4acad791681f4777b331b8ebaa1c16b5") 
             const dataJson = await response.json()
             setData(dataJson)
             console.log(dataJson)
