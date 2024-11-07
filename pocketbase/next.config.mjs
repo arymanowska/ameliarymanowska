@@ -1,4 +1,13 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+    images: {
+        domains: [
+            "flagcdn.com",
+            "upload.wikimedia.org",
+            "172.16.15.156",
+            "127.0.0.1",
+        ],
+    },
+};
 
 export default nextConfig;

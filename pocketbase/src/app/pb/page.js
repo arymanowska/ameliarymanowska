@@ -1,181 +1,222 @@
-"use client"
-import PocketBase from 'pocketbase';
-import { useState, useEffect } from 'react';
+"use client";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-  } from "@/components/ui/card"
-  import Image from 'next/image';
-  import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from '@/components/ui/button';
-import { Trash2, Pencil } from 'lucide-react';
-import { Dialog } from '@/components/ui/dialog';
-import  EditItem  from '@/components/pb/edititem';
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Image from "next/image";
+import PocketBase from "pocketbase";
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
+import EditItem from "@/components/pb/edititem";
+import LoginAvatar from "@/components/pb/loginAvatar";
 
+export default function Page() {
+  const pb = new PocketBase(
+    "http://172.16.15.156:8080/"
+  );
+  const [user, setUser] = useState(null)
 
-export default function pb(){
-    const [data, setData] = useState([])
-    const [dane, setDane] = useState({nazwa:null, cena:null, opis:null})
-    const [zdjecie, setZdjecie] = useState(null)
-    
+  useEffect(() => {
+      setUser(pb.authStore.model)
+  },[])
 
-    const form = (e, nazwa)=>{
-        setDane((prevDane=>{
-            return(
-           { ...prevDane, 
-            [nazwa]:e.target.value
-           }
-        )}))
-    }
+  const login = (user_pb) =>{
+    setUser(user_pb)
+  }
 
+  const [data, setData] = useState([]);
+  const [dane, setDane] = useState({
+    nazwa: null,
+    opis: null,
+    cena: null,
+    likes: null,
+    dislikes: null,
+  });
+  const [zdjecie, setZdjecie] = useState(null);
 
-    const handleZdjecie = (e)=>{
+  useEffect(() => {
+    const getData = async () => {
+      try {
+        const records = await pb.collection("gry").getFullList({
+          sort: "-created",
+        });
+        console.log(records);
+        setData(records);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    getData();
+  }, []);
 
-        console.log(e)
-        setZdjecie(e.target.files[0])
+  const form = (e, field) => {
+    const { value } = e.target;
+    setDane((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    console.log(dane);
+  };
 
-    }
+  const handlezdjecie = (e) => {
+    console.log(e);
+    setZdjecie(e.target.files[0]);
+  };
 
-    const zapisz = async ()=>{
+  const zapisz = async () => {
+    const formData = new FormData();
+    formData.append("nazwa", dane.nazwa);
+    formData.append("cena", dane.cena);
+    formData.append("opis", dane.opis);
+    formData.append("zdjecie", zdjecie);
 
+    console.log(formData);
+    const record = await pb.collection("gry").create(formData);
+    setData((prevData) => {
+      return [record, ...prevData];
+    });
+  };
 
-        const formdata = new FormData()
+  const delItem = async (id) => {
+    try {
+      await pb.collection("gry").delete(id);
 
-        formdata.append('nazwa', dane.nazwa)
-        formdata.append('cena', dane.cena)
-        formdata.append('opis', dane.opis)
-        formdata.append('zdjecie', zdjecie)
-
-        const record = await pb.collection('gry').create(formdata);
-        setData((prevData)=>{
-            return(
-                [ record, ...prevData]
-            )
+      setData((prev) =>
+        prev.filter((item) => {
+          return item.id != id;
         })
+      );
+    } catch (error) {
+      console.log(error);
     }
+  };
 
+  const updateItem = (item) => {
+    console.log(item);
 
-    const pb = new PocketBase('http://172.16.15.156:8080');
+    var tmpData = [...data];
+    var index = null;
 
-    useEffect(()=>{
-        const getData = async () =>{
-
-            try{
-                // you can also fetch all records at once via getFullList
-                const records = await pb.collection('gry').getFullList({
-                sort: '-created',
-                });
-                
-                console.log(records);
-                setData(records)
-
-            }catch(error){
-                console.log(error);
-            }
-
-
-
-
-        }
-getData();
-
-    },[])
-
-    const delItem = async (id) => {
-        console.log(id)
-
-        try{
-            await pb.collection('gry').delete(id)
-
-            //aktualizacja stanu po usuniecu
-            setData((prev) => ([
-                prev.filter(item => {
-                    return item.id != id
-                })
-            ]))
-        }catch(error){
-            console.log(error)
-        }
+    for (let i in data) {
+      if (item.id == tmpData[i].id) {
+        index = i;
+      }
     }
+    tmpData[index] = item;
+    setData(tmpData);
 
-    const updateItem = (item) => {
-        console.log(item)
+    console.log("index " + index);
+  };
 
-        var tmpData = [...data]
-        var index = null
+  const likeUp = async (gra) => {
+    const updatedGra = { ...gra, likes: gra.likes + 1 };
+    const record = await pb
+      .collection("gry")
+      .update(gra.id, { likes: updatedGra.likes });
+    updateItem(record);
+  };
 
-        for(let i in data){
-            if(item.id == tmpData[i].id){
-                index = i
-            }
-        }
-        tmpData[index] = item
-        setData(tmpData)
+  const likeDown = async (gra) => {
+    const updatedGra = { ...gra, dislikes: gra.dislikes + 1 };
+    const record = await pb
+      .collection("gry")
+      .update(gra.id, { dislikes: updatedGra.dislikes });
+    updateItem(record);
+  };
 
-        console.log("index: " + index)
-    }
 
-    return (
-    
-        <div className='flex flex-row justify-center flex-wrap   w-full h-[70vh]  gap-10 space-x-10 mt-5'>
-     {data && data.map((gra)=> {  
-     return(
-     <Card key={gra.id} className="w-[300px] h-[400px]">
-  <CardHeader>
-    <CardTitle>{gra.nazwa}</CardTitle>
-    <CardDescription className="text-justify">{gra.opis}</CardDescription>
-  </CardHeader>
-  <CardContent>
-    <Image
-    src={pb.files.getUrl(gra, gra.zdjecie )}
-    alt={gra.zdjecie}
-    width={300}
-    height={200}
-    
-    />
-  </CardContent>
-  <CardFooter>
-    <div className='w-full flex justify-end'>
-        <Dialog/>
-        <Button variant="ghost">
-            <EditItem gra={gra} onupdate={updateItem}/>
-        </Button>
-        <Button onClick={() => {delItem(gra.id)}} varian="ghost">
-            <Trash2 />
-        </Button>
+
+  return (
+    <div className="flex flex-wrap gap-4 justify-center">
+      <LoginAvatar onlogin={login}/>
+      {user ? data && 
+        data.map((gra, idx) => (
+          <Card key={idx} className="w-[35vh] h-[55vh] flex flex-col mb-10">
+            <CardHeader>
+              <CardTitle>{gra.nazwa}</CardTitle>
+              <CardDescription className="text-justify">
+                {gra.opis}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              cena: {gra.cena} zł
+              <Image
+                src={pb.files.getUrl(gra, gra.obraz)}
+                alt={gra.nazwa}
+                width={250}
+                height={100}
+              />
+            </CardContent>
+            <CardFooter>
+              <div className="w-full flex justify-end">
+                <Label>{gra.likes}</Label>
+                <ThumbsUp onClick={() => likeUp(gra)}></ThumbsUp>
+
+                <Label>{gra.dislikes}</Label>
+                <ThumbsDown onClick={() => likeDown(gra)}></ThumbsDown>
+
+                <EditItem gra={gra} onupdate={updateItem}></EditItem>
+
+                <Button
+                  onClick={() => {
+                    delItem(gra.id);
+                  }}
+                  variant="ghost"
+                >
+                  <Trash2></Trash2>
+                </Button>
+              </div>
+            </CardFooter>
+          </Card>
+        )) :(
+            <p>niezalogowany</p>
+        )}
+
+      <div className="w-full h-[40vh] flex justify-center mt-5">
+        <Card className="w-[400px] h-[400px] p-5">
+          <Label htmlFor="nazwa">nazwa</Label>
+          <Input
+            onChange={(e) => form(e, "nazwa")}
+            type="text"
+            id="nazwa"
+            placeholder="nazwa"
+          />
+
+          <Label htmlFor="opis">opis</Label>
+          <Input
+            onChange={(e) => form(e, "opis")}
+            type="text"
+            id="opis"
+            placeholder="opis"
+          />
+
+          <Label htmlFor="cena">cena</Label>
+          <Input
+            onChange={(e) => form(e, "cena")}
+            type="number"
+            id="cena"
+            placeholder="cena"
+          />
+
+          <Label htmlFor="zdjecie">zdjecie</Label>
+          <Input
+            onChange={(e) => handlezdjecie(e, "zdjecie")}
+            type="file"
+            id="zdjecie"
+            placeholder="zdjecie"
+          />
+          <Button onClick={zapisz} className="w-full mt-5">
+            SEND
+          </Button>
+        </Card>
+      </div>
     </div>
-    Cena: {gra.cena}zł
-  </CardFooter>
-</Card>
-     )}
-)}
-<div className='flex  w-full h-[30vh] justify-center items-center '>
-
-
-<Card className="w-[500px] p-5 gap-3">
-    <CardTitle>Dodaj grę!</CardTitle>
-      <Label htmlFor="email">Nazwa</Label>
-      <Input onChange={(e)=>{form(e, "nazwa")}} type="text" id="nazwa" placeholder="Nazwa gry..." />
-
-      <Label htmlFor="cena">Cena</Label>
-      <Input onChange={(e)=>{form(e, "cena")}} type="number" id="cena" placeholder="Cena gry..." />
-
-      <Label htmlFor="opis">Opis</Label>
-      <Input onChange={(e)=>{form(e, "opis")}} type="text" id="opis" placeholder="Opis gry..." />
-
-      <Label htmlFor="zdjecie">Zdjecie</Label>
-      <Input onChange={(e)=>{handleZdjecie(e)}} type="file" id="zdjecie" placeholder="Zdjecie gry..." />
-      
-      <Button onClick={zapisz}>Dodaj gre</Button>
-      </Card>
-
-</div>
-    </div>
-    )
+  );
 }
-
